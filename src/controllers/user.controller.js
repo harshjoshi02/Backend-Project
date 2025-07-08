@@ -3,13 +3,14 @@ import { ApiError } from "../utils/ApiError.js";
 import { User } from "../models/user.model.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
-// import mongoose from "mongoose";
+import mongoose from "mongoose";
+import jwt from "jsonwebtoken";
 
 const generateAccessTokenAndRefreshToken = async(userId) => {
     try {
         const user = await User.findById(userId);
         const accessToken = user.generateAccessToken();
-        const refreshToken = user.generateRefreshTokne();
+        const refreshToken = user.generateRefreshToken();
 
         user.refreshToken = refreshToken;
         await user.save({validateBeforeSave: false});
@@ -120,7 +121,7 @@ const loginUser = asyncHandler( async(req, res) => {
 
     const {accessToken, refreshToken} = await generateAccessTokenAndRefreshToken(user._id);
 
-    const loggedInUser = User.findById(user._id).select("-password -refreshToken");
+    const loggedInUser = await User.findById(user._id).select("-password -refreshToken");
 
     const options = {
         httpOnly: true,
@@ -135,7 +136,9 @@ const loginUser = asyncHandler( async(req, res) => {
         new ApiResponse(
             200,
             {
-                user: loggedInUser, accessToken, refreshToken
+                user: loggedInUser,
+                accessToken,
+                refreshToken
             },
             "user logged in successfully"
         )
